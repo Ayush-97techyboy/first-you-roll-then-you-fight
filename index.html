@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>First You Roll Then You Fight - Game Book Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Outfit:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at 50% 20%, #111827 0%, #030712 100%);
+      color: #f3f4f6;
+      user-select: none;
+    }
+    .font-cinzel { font-family: 'Cinzel', serif; }
+    .font-pixel { font-family: 'Press Start 2P', cursive; }
+
+    /* Custom Aura Glows */
+    .aura-star {
+      background: linear-gradient(135deg, #ffd700, #ff8c00, #ff1493);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), 0 0 50px rgba(255, 20, 147, 0.4);
+      animation: pulseAura 2s infinite alternate;
+    }
+    .aura-eclipse {
+      background: linear-gradient(135deg, #4f46e5, #9333ea, #06b6d4);
+      box-shadow: 0 0 30px rgba(147, 51, 234, 0.7), 0 0 60px rgba(6, 182, 212, 0.5);
+      animation: pulseEclipse 2.5s infinite alternate;
+    }
+
+    @keyframes pulseAura {
+      0% { filter: drop-shadow(0 0 10px #ffdd00); }
+      100% { filter: drop-shadow(0 0 30px #ff0077); }
+    }
+    @keyframes pulseEclipse {
+      0% { transform: scale(1); filter: drop-shadow(0 0 15px #7c3aed); }
+      100% { transform: scale(1.02); filter: drop-shadow(0 0 35px #06b6d4); }
+    }
+
+    @keyframes rollShake {
+      0%, 100% { transform: translateY(0); }
+      20% { transform: translateY(-8px) rotate(-2deg); }
+      40% { transform: translateY(6px) rotate(2deg); }
+      60% { transform: translateY(-4px) rotate(-1deg); }
+      80% { transform: translateY(2px) rotate(1deg); }
+    }
+    .rolling-anim {
+      animation: rollShake 0.12s infinite;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111827; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+  <!-- Top Navigation & Header -->
+  <header class="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full border-2 border-yellow-500/80 bg-blue-950 flex items-center justify-center shadow-lg shadow-yellow-500/20">
+        <span class="text-xl">🐉</span>
+      </div>
+      <div>
+        <h1 class="font-cinzel text-lg sm:text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600">
+          FIRST YOU ROLL THEN YOU FIGHT
+        </h1>
+        <p class="text-xs text-gray-400 flex items-center gap-2">
+          <span>By Pratham</span> • <span class="text-amber-400/80">Rancho's School, Ladakh</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats & Actions -->
+    <div class="flex items-center gap-3">
+      <!-- Notice Board Modal Trigger -->
+      <button onclick="openNoticeModal()" class="relative px-3 py-1.5 rounded-lg border border-yellow-500/50 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 text-xs font-semibold flex items-center gap-1.5 transition">
+        <span>📜 Notice Board</span>
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-ping absolute -top-1 -right-1"></span>
+      </button>
+
+      <!-- Codex Modal Trigger -->
+      <button onclick="openCodexModal()" class="px-3 py-1.5 rounded-lg border border-purple-500/50 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition">
+        <span>🏆 750 Beings Codex</span>
+      </button>
+
+      <!-- Coins / Gems Display -->
+      <div class="hidden sm:flex items-center gap-2 bg-gray-900 border border-gray-800 px-3 py-1 rounded-lg text-xs font-bold">
+        <span class="text-yellow-400">🪙 <span id="coinCount">100</span></span>
+        <span class="text-blue-400 ml-2">💎 <span id="gemCount">0</span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Stage -->
+  <main class="max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
+    
+    <!-- LEFT PANEL: The Roll & Active Fighter (5 cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-5">
+      
+      <!-- Current Rolled Being Display -->
+      <div class="relative bg-gray-900/90 border border-gray-800 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center overflow-hidden">
+        
+        <!-- Active Aura Glow Backing -->
+        <div id="auraBackdrop" class="absolute inset-0 opacity-20 pointer-events-none transition-all duration-700"></div>
+
+        <!-- Top Badges -->
+        <div class="w-full flex justify-between items-center z-10 mb-2">
+          <span id="tierBadge" class="text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider bg-gray-800 border border-gray-700 text-gray-300">
+            Tier: Weakling
+          </span>
+          <span id="auraBadge" class="text-xs font-bold px-2.5 py-1 rounded-full text-gray-400 bg-gray-950/70 border border-gray-800">
+            No Aura
+          </span>
+        </div>
+
+        <!-- Avatar / Sprite Display -->
+        <div id="beingAvatarContainer" class="my-4 relative z-10 w-32 h-32 rounded-2xl bg-gradient-to-b from-gray-800 to-gray-950 border-2 border-gray-700 flex items-center justify-center text-5xl shadow-inner transition-transform duration-300">
+          <span id="beingAvatar">🦗</span>
+        </div>
+
+        <!-- Being Name & Lore -->
+        <h2 id="beingName" class="font-cinzel text-2xl font-black text-white tracking-wide z-10">
+          Town Weakling
+        </h2>
+        <p id="beingOdds" class="text-xs text-gray-400 mt-1 z-10">
+          Rarity Chance: 1 in 2 (Common)
+        </p>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-3 gap-2 w-full mt-4 z-10">
+          <div class="bg-gray-950/70 p-2 rounded-xl border border-gray-800 text-center">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Power</div>
+            <div id="statPower" class="text-sm font-black text-red-400">10</div>
+          </div>
+          <div class="bg-gray-950/70 p-2 rounded-xl border border-gray-800 text-center">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Health</div>
+            <div id="statHp" class="text-sm font-black text-green-400">50</div>
+          </div>
+          <div class="bg-gray-950/70 p-2 rounded-xl border border-gray-800 text-center">
+            <div class="text-[10px] text-gray-400 font-semibold uppercase">Speed</div>
+            <div id="statSpeed" class="text-sm font-black text-blue-400">5</div>
+          </div>
+        </div>
+
+        <!-- Roll Controls -->
+        <div class="w-full flex flex-col gap-2 mt-5 z-10">
+          <button id="rollBtn" onclick="triggerRoll()" class="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-gray-950 font-black text-lg tracking-wider shadow-lg shadow-amber-500/20 active:scale-95 transition">
+            🎲 ROLL BEING
+          </button>
+          
+          <div class="flex items-center justify-between text-xs text-gray-400 px-1 pt-1">
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="autoRollToggle" onchange="toggleAutoRoll(this)" class="rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0">
+              <span>Auto Roll</span>
+            </label>
+            <span id="totalRolls" class="text-gray-400">Rolls: 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Friend / Konami Code Input Bar -->
+      <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2 text-gray-400">
+          <span class="text-amber-400 text-sm">🎮</span>
+          <span>Secret Code:</span>
+        </div>
+        <div class="flex gap-2 flex-1 max-w-[220px]">
+          <input type="text" id="secretCodeInput" placeholder="Enter Konami Code..." class="w-full bg-gray-950 border border-gray-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-400 uppercase">
+          <button onclick="submitSecretCode()" class="bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold px-3 py-1 rounded-lg">Check</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL: The Fight Arena (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-5">
+      
+      <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-6 shadow-2xl flex flex-col">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⚔️</span>
+            <h3 class="font-cinzel text-lg font-bold text-white tracking-wide">BATTLE ARENA</h3>
+          </div>
+          <span id="stageLabel" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-950/60 border border-red-800/80 text-red-300">
+            Dungeon Floor 1
+          </span>
+        </div>
+
+        <!-- Duel Battlefield -->
+        <div class="grid grid-cols-2 gap-4 items-center bg-gray-950/80 rounded-xl p-5 border border-gray-800 relative min-h-[220px]">
+          
+          <!-- VS Indicator -->
+          <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-red-600 text-white font-black text-xs flex items-center justify-center border-2 border-gray-900 shadow-lg z-20">
+            VS
+          </div>
+
+          <!-- Player Fighter Side -->
+          <div class="flex flex-col items-center text-center">
+            <div id="playerCombatSprite" class="w-20 h-20 rounded-xl bg-blue-950/50 border border-blue-500/40 flex items-center justify-center text-4xl mb-2 transition-transform">
+              <span id="playerFightAvatar">🦗</span>
+            </div>
+            <div id="playerCombatName" class="text-xs font-bold text-blue-300 truncate max-w-[120px]">Town Weakling</div>
+            <!-- Health Bar -->
+            <div class="w-full max-w-[140px] bg-gray-800 rounded-full h-2 mt-2 overflow-hidden border border-gray-700">
+              <div id="playerHpBar" class="bg-green-500 h-full w-full transition-all duration-300"></div>
+            </div>
+            <span id="playerHpText" class="text-[10px] text-gray-400 mt-1">50 / 50 HP</span>
+          </div>
+
+          <!-- Enemy Boss Side -->
+          <div class="flex flex-col items-center text-center">
+            <div id="enemyCombatSprite" class="w-20 h-20 rounded-xl bg-red-950/50 border border-red-500/40 flex items-center justify-center text-4xl mb-2 transition-transform">
+              <span id="enemyFightAvatar">🐺</span>
+            </div>
+            <div id="enemyCombatName" class="text-xs font-bold text-red-300 truncate max-w-[120px]">Wild Highland Wolf</div>
+            <!-- Enemy Health Bar -->
+            <div class="w-full max-w-[140px] bg-gray-800 rounded-full h-2 mt-2 overflow-hidden border border-gray-700">
+              <div id="enemyHpBar" class="bg-red-500 h-full w-full transition-all duration-300"></div>
+            </div>
+            <span id="enemyHpText" class="text-[10px] text-gray-400 mt-1">45 / 45 HP</span>
+          </div>
+
+        </div>
+
+        <!-- Combat Action & Log -->
+        <div class="mt-4 flex flex-col gap-3">
+          <div class="flex gap-2">
+            <button id="fightBtn" onclick="startBattleTurn()" class="flex-1 py-3 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-red-600/20 text-sm tracking-wider transition">
+              ⚔️ ATTACK ENEMY
+            </button>
+            <button onclick="skipToNextEnemy()" class="px-4 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl text-xs transition">
+              Find New Foe
+            </button>
+          </div>
+
+          <!-- Battle Log Box -->
+          <div class="bg-gray-950 rounded-xl p-3 border border-gray-800 h-32 overflow-y-auto text-xs space-y-1" id="battleLog">
+            <p class="text-gray-500">Battle log initialized. First you roll your champion, then you fight!</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quick Best Friend Buff Claim Bar -->
+      <div class="bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-blue-950/40 border border-purple-500/30 rounded-2xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-xl">
+            ✨
+          </div>
+          <div>
+            <div class="text-sm font-bold text-purple-200">Pratham's Best Friend Special</div>
+            <div class="text-xs text-purple-400">Unlock +1,000,000 Eclipse power & the Star Aura!</div>
+          </div>
+        </div>
+        <button onclick="claimBestFriendPerk()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-purple-600/30 active:scale-95 transition">
+          Claim Perk
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- NOTICE BOARD MODAL -->
+  <div id="noticeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gray-900 border border-yellow-500/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+      <button onclick="closeNoticeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✕</button>
+      
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center text-xl">
+          📜
+        </div>
+        <div>
+          <h3 class="font-cinzel text-xl font-bold text-yellow-400">Notice Board</h3>
+          <p class="text-xs text-gray-400">Direct notes from the Game Book</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 space-y-4 text-sm text-gray-200">
+        <div class="border-l-2 border-yellow-500 pl-3">
+          <p class="text-xs text-yellow-400 font-semibold mb-1">Owner De Unke De Pratham:</p>
+          <p class="italic text-gray-300">"Hello everyone to my game (First you roll then you fight)"</p>
+        </div>
+
+        <div class="border-l-2 border-purple-500 pl-3">
+          <p class="text-xs text-purple-400 font-semibold mb-1">Owner De Unke De Pratham:</p>
+          <p class="italic text-gray-300">"If you are my best friend you get an extra +1m eclipse and the star aura :-)"</p>
+        </div>
+
+        <div class="border-l-2 border-cyan-500 pl-3">
+          <p class="text-xs text-cyan-400 font-semibold mb-1">Secret Konami Code Hint:</p>
+          <p class="font-mono text-xs text-gray-400">↑ ↑ ↓ ↓ ← → A B A C D C</p>
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end">
+        <button onclick="closeNoticeModal()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-xs">
+          Got It, Boss!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 750 BEINGS CODEX MODAL -->
+  <div id="codexModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gray-900 border border-purple-500/50 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <button onclick="closeCodexModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✕</button>
+      
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-xl">
+          🌌
+        </div>
+        <div>
+          <h3 class="font-cinzel text-xl font-bold text-purple-400">750 Beings - Official Hierarchy</h3>
+          <p class="text-xs text-gray-400">From Weakling to Primordial, Prime, and OP</p>
+        </div>
+      </div>
+
+      <div class="overflow-y-auto space-y-3 pr-2 flex-1 text-xs">
+        
+        <!-- Highest / OP Tier -->
+        <div class="bg-gradient-to-r from-amber-950/40 via-red-950/40 to-purple-950/40 border border-yellow-500/60 rounded-xl p-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-bold text-yellow-400 text-sm">👑 OP (Supreme Sovereign)</span>
+            <span class="text-yellow-300 font-mono">1 in 10,000,000</span>
+          </div>
+          <p class="text-gray-300">The absolute pinnacle being of the 750 Beings cosmos. Godlike strength beyond mortal comprehension.</p>
+        </div>
+
+        <!-- Top Branch Tiers -->
+        <div class="grid grid-cols-3 gap-2">
+          <div class="bg-gray-950 border border-purple-600/50 rounded-xl p-2.5 text-center">
+            <span class="font-bold text-purple-300 block">✨ Primordial</span>
+            <span class="text-[10px] text-gray-500">1 in 2,500,000</span>
+          </div>
+          <div class="bg-gray-950 border border-cyan-600/50 rounded-xl p-2.5 text-center">
+            <span class="font-bold text-cyan-300 block">❓ ???? (Mystery)</span>
+            <span class="text-[10px] text-gray-500">1 in 5,000,000</span>
+          </div>
+          <div class="bg-gray-950 border border-amber-600/50 rounded-xl p-2.5 text-center">
+            <span class="font-bold text-amber-300 block">⚡ Prime</span>
+            <span class="text-[10px] text-gray-500">1 in 1,000,000</span>
+          </div>
+        </div>
+
+        <!-- Evolution Path -->
+        <div class="space-y-2 pt-2">
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-indigo-400">10. Version X</span>
+            <span class="text-gray-500">1 in 500,000</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-blue-400">9. Ascendant</span>
+            <span class="text-gray-500">1 in 100,000</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-emerald-400">8. Overlord</span>
+            <span class="text-gray-500">1 in 25,000</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-teal-400">7. Legend</span>
+            <span class="text-gray-500">1 in 5,000</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-orange-400">6. Warlord</span>
+            <span class="text-gray-500">1 in 1,000</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-rose-400">5. Grandmaster</span>
+            <span class="text-gray-500">1 in 250</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-amber-400">4. Veteran</span>
+            <span class="text-gray-500">1 in 50</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-yellow-500">3. Warrior</span>
+            <span class="text-gray-500">1 in 15</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-gray-300">2. Squire</span>
+            <span class="text-gray-500">1 in 5</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-gray-400">1. Novice</span>
+            <span class="text-gray-500">1 in 3</span>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-950 border border-gray-800 flex justify-between items-center">
+            <span class="font-bold text-gray-500">0. Weakling</span>
+            <span class="text-gray-500">1 in 2</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Synthesis & Game Logic -->
+  <script>
+    // Audio FX using Web Audio API
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, type = 'sine', duration = 0.1) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playFanfare() {
+      [440, 554, 659, 880, 1108].forEach((f, idx) => {
+        setTimeout(() => playBeep(f, 'triangle', 0.2), idx * 100);
+      });
+    }
+
+    // Tiers Data derived from Pratham's Game Book
+    const TIERS = [
+      { name: "Weakling", odds: 2, power: 10, hp: 50, speed: 5, sprite: "🦗", color: "text-gray-400", bg: "from-gray-800 to-gray-950" },
+      { name: "Novice", odds: 4, power: 25, hp: 90, speed: 10, sprite: "🗡️", color: "text-gray-200", bg: "from-gray-700 to-gray-900" },
+      { name: "Squire", odds: 10, power: 55, hp: 160, speed: 15, sprite: "🛡️", color: "text-blue-300", bg: "from-blue-900/60 to-gray-950" },
+      { name: "Warrior", odds: 25, power: 120, hp: 300, speed: 25, sprite: "⚔️", color: "text-amber-400", bg: "from-amber-900/60 to-gray-950" },
+      { name: "Veteran", odds: 80, power: 280, hp: 600, speed: 40, sprite: "🎖️", color: "text-emerald-400", bg: "from-emerald-900/60 to-gray-950" },
+      { name: "Grandmaster", odds: 300, power: 750, hp: 1500, speed: 65, sprite: "🧙", color: "text-rose-400", bg: "from-rose-900/60 to-gray-950" },
+      { name: "Warlord", odds: 1200, power: 2000, hp: 4000, speed: 100, sprite: "👹", color: "text-orange-500", bg: "from-orange-950 to-gray-950" },
+      { name: "Legend", odds: 6000, power: 6500, hp: 12000, speed: 160, sprite: "🐉", color: "text-teal-300", bg: "from-teal-950 to-gray-950" },
+      { name: "Overlord", odds: 30000, power: 22000, hp: 40000, speed: 260, sprite: "👑", color: "text-purple-400", bg: "from-purple-950 to-gray-950" },
+      { name: "Ascendant", odds: 150000, power: 80000, hp: 150000, speed: 450, sprite: "⚡", color: "text-blue-400", bg: "from-blue-900 to-indigo-950" },
+      { name: "Version X", odds: 700000, power: 300000, hp: 550000, speed: 800, sprite: "🧬", color: "text-indigo-300", bg: "from-indigo-900 to-gray-950" },
+      { name: "Prime", odds: 1500000, power: 1200000, hp: 2000000, speed: 1500, sprite: "🔱", color: "text-yellow-300", bg: "from-yellow-900 to-gray-950" },
+      { name: "Primordial", odds: 3500000, power: 4000000, hp: 6000000, speed: 3000, sprite: "🌌", color: "text-pink-400", bg: "from-pink-950 to-purple-950" },
+      { name: "????", odds: 7000000, power: 9999999, hp: 15000000, speed: 6000, sprite: "👁️", color: "text-cyan-300", bg: "from-cyan-950 to-black" },
+      { name: "OP (Supreme)", odds: 15000000, power: 50000000, hp: 100000000, speed: 15000, sprite: "🔥", color: "text-yellow-400", bg: "from-amber-600 to-red-950" }
+    ];
+
+    // Enemy Roster
+    const ENEMIES = [
+      { name: "Wild Highland Wolf", hp: 45, maxHp: 45, power: 8, sprite: "🐺", reward: 25 },
+      { name: "Ladakh Mountain Yeti", hp: 180, maxHp: 180, power: 35, sprite: "🦍", reward: 80 },
+      { name: "Ancient Shadow Golem", hp: 800, maxHp: 800, power: 160, sprite: "🗿", reward: 350 },
+      { name: "Sky Dragon of Shey", hp: 5000, maxHp: 5000, power: 900, sprite: "🐲", reward: 2000 },
+      { name: "Primordial Void Entity", hp: 50000, maxHp: 50000, power: 12000, sprite: "👾", reward: 15000 }
+    ];
+
+    // State
+    let currentTier = TIERS[0];
+    let activeAura = null; // 'star', 'eclipse', or null
+    let extraEclipsePower = 0;
+    let coins = 100;
+    let gems = 0;
+    let totalRollCount = 0;
+    let autoRolling = false;
+    let autoRollTimer = null;
+    let isRolling = false;
+
+    let currentEnemyIndex = 0;
+    let currentEnemy = { ...ENEMIES[0] };
+    let playerCombatHp = 50;
+
+    // Dom References
+    const beingAvatar = document.getElementById('beingAvatar');
+    const beingName = document.getElementById('beingName');
+    const beingOdds = document.getElementById('beingOdds');
+    const tierBadge = document.getElementById('tierBadge');
+    const auraBadge = document.getElementById('auraBadge');
+    const auraBackdrop = document.getElementById('auraBackdrop');
+    const statPower = document.getElementById('statPower');
+    const statHp = document.getElementById('statHp');
+    const statSpeed = document.getElementById('statSpeed');
+    const totalRolls = document.getElementById('totalRolls');
+    const coinCount = document.getElementById('coinCount');
+    const gemCount = document.getElementById('gemCount');
+
+    // Combat Dom
+    const playerFightAvatar = document.getElementById('playerFightAvatar');
+    const playerCombatName = document.getElementById('playerCombatName');
+    const playerHpBar = document.getElementById('playerHpBar');
+    const playerHpText = document.getElementById('playerHpText');
+    const enemyFightAvatar = document.getElementById('enemyFightAvatar');
+    const enemyCombatName = document.getElementById('enemyCombatName');
+    const enemyHpBar = document.getElementById('enemyHpBar');
+    const enemyHpText = document.getElementById('enemyHpText');
+    const battleLog = document.getElementById('battleLog');
+
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num.toLocaleString();
+    }
+
+    function getPlayerEffectivePower() {
+      let p = currentTier.power + extraEclipsePower;
+      if (activeAura === 'star') p = Math.floor(p * 2.5);
+      return p;
+    }
+
+    function getPlayerEffectiveHp() {
+      let h = currentTier.hp;
+      if (extraEclipsePower > 0) h += 500000;
+      if (activeAura === 'star') h = Math.floor(h * 2);
+      return h;
+    }
+
+    // Roll Function
+    function triggerRoll() {
+      if (isRolling) return;
+      isRolling = true;
+      totalRollCount++;
+      totalRolls.innerText = `Rolls: ${totalRollCount}`;
+
+      const avatarCont = document.getElementById('beingAvatarContainer');
+      avatarCont.classList.add('rolling-anim');
+      playBeep(220, 'square', 0.05);
+
+      // Brief suspense duration
+      setTimeout(() => {
+        avatarCont.classList.remove('rolling-anim');
+        isRolling = false;
+
+        // Roll RNG calculation
+        let rand = Math.random();
+        
+        // Luck multiplier if Star Aura active
+        let luckMult = activeAura === 'star' ? 4 : 1;
+        rand = rand / luckMult;
+
+        let selected = TIERS[0];
+        // Traverse backwards from OP to lowest
+        for (let i = TIERS.length - 1; i >= 0; i--) {
+          const threshold = 1 / TIERS[i].odds;
+          if (rand < threshold) {
+            selected = TIERS[i];
+            break;
+          }
+        }
+
+        currentTier = selected;
+        playerCombatHp = getPlayerEffectiveHp();
+        updateBeingDisplay();
+
+        // Sound effect based on tier rarity
+        if (selected.odds >= 100000) {
+          playFanfare();
+          logBattle(`🌟 UNBELIEVABLE ROLL! You awakened a ${selected.name}!`);
+        } else if (selected.odds >= 300) {
+          playBeep(600, 'triangle', 0.15);
+          logBattle(`✨ Rare Roll! You unlocked ${selected.name}!`);
+        } else {
+          playBeep(320, 'sine', 0.08);
+        }
+
+      }, 180);
+    }
+
+    function updateBeingDisplay() {
+      beingAvatar.innerText = currentTier.sprite;
+      beingName.innerText = currentTier.name;
+      beingOdds.innerText = `Rarity Chance: 1 in ${formatNumber(currentTier.odds)}`;
+      tierBadge.innerText = `Tier: ${currentTier.name}`;
+      
+      const effPower = getPlayerEffectivePower();
+      const effHp = getPlayerEffectiveHp();
+
+      statPower.innerText = formatNumber(effPower);
+      statHp.innerText = formatNumber(effHp);
+      statSpeed.innerText = formatNumber(currentTier.speed);
+
+      // Arena display sync
+      playerFightAvatar.innerText = currentTier.sprite;
+      playerCombatName.innerText = currentTier.name;
+      updateCombatHpBars();
+    }
+
+    function toggleAutoRoll(checkbox) {
+      autoRolling = checkbox.checked;
+      if (autoRolling) {
+        autoRollTimer = setInterval(triggerRoll, 350);
+      } else {
+        clearInterval(autoRollTimer);
+      }
+    }
+
+    // Best Friend Perk
+    function claimBestFriendPerk() {
+      activeAura = 'star';
+      extraEclipsePower = 1000000;
+
+      auraBadge.innerText = "⭐ Star Aura (+1M Eclipse)";
+      auraBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full text-yellow-950 bg-yellow-400 shadow-lg shadow-yellow-400/50";
+      
+      auraBackdrop.className = "absolute inset-0 aura-star opacity-40 pointer-events-none transition-all duration-700";
+
+      playFanfare();
+      logBattle("🎁 BEST FRIEND BUFF ACTIVATED! +1,000,000 Eclipse & Star Aura equipped!");
+      updateBeingDisplay();
+    }
+
+    // Konami Code Detection
+    const KONAMI_TARGET = "↑↑↓↓←→ABACDC";
+    let keyBuffer = [];
+
+    window.addEventListener('keydown', (e) => {
+      let k = "";
+      if (e.key === "ArrowUp") k = "↑";
+      else if (e.key === "ArrowDown") k = "↓";
+      else if (e.key === "ArrowLeft") k = "←";
+      else if (e.key === "ArrowRight") k = "→";
+      else if (e.key.length === 1) k = e.key.toUpperCase();
+
+      if (k) {
+        keyBuffer.push(k);
+        if (keyBuffer.length > 20) keyBuffer.shift();
+
+        if (keyBuffer.join('').includes(KONAMI_TARGET)) {
+          triggerSecretCodeSuccess();
+          keyBuffer = [];
+        }
+      }
+    });
+
+    function submitSecretCode() {
+      const val = document.getElementById('secretCodeInput').value.trim().toUpperCase();
+      // Allow clean text or arrow representation
+      if (val === "↑↑↓↓←→ABACDC" || val === "UP UP DOWN DOWN LEFT RIGHT ABACDC" || val === "ABACDC") {
+        triggerSecretCodeSuccess();
+      } else {
+        alert("Incorrect secret code! Check the Konami Code written in the Game Book.");
+      }
+    }
+
+    function triggerSecretCodeSuccess() {
+      claimBestFriendPerk();
+      coins += 50000;
+      gems += 500;
+      coinCount.innerText = formatNumber(coins);
+      gemCount.innerText = formatNumber(gems);
+      alert("✨ SECRET KONAMI CODE UNLOCKED! ✨\n\nYou received:\n• The Mythic Star Aura\n• +1,000,000 Eclipse Power\n• 50,000 Coins & 500 Gems!");
+    }
+
+    // Combat Mechanics
+    function logBattle(msg) {
+      const p = document.createElement('p');
+      p.innerHTML = msg;
+      battleLog.prepend(p);
+    }
+
+    function updateCombatHpBars() {
+      const maxP = getPlayerEffectiveHp();
+      const pPct = Math.max(0, Math.min(100, (playerCombatHp / maxP) * 100));
+      playerHpBar.style.width = `${pPct}%`;
+      playerHpText.innerText = `${formatNumber(playerCombatHp)} / ${formatNumber(maxP)} HP`;
+
+      const ePct = Math.max(0, Math.min(100, (currentEnemy.hp / currentEnemy.maxHp) * 100));
+      enemyHpBar.style.width = `${ePct}%`;
+      enemyHpText.innerText = `${formatNumber(currentEnemy.hp)} / ${formatNumber(currentEnemy.maxHp)} HP`;
+    }
+
+    function startBattleTurn() {
+      const playerPwr = getPlayerEffectivePower();
+      const enemyDmg = currentEnemy.power;
+
+      // Player attacks enemy
+      currentEnemy.hp -= playerPwr;
+      playBeep(450, 'sawtooth', 0.1);
+      
+      const pSprite = document.getElementById('playerCombatSprite');
+      pSprite.classList.add('translate-x-4');
+      setTimeout(() => pSprite.classList.remove('translate-x-4'), 150);
+
+      logBattle(`💥 <span class="text-blue-400">${currentTier.name}</span> dealt <span class="text-yellow-400 font-bold">${formatNumber(playerPwr)}</span> damage to ${currentEnemy.name}!`);
+
+      if (currentEnemy.hp <= 0) {
+        currentEnemy.hp = 0;
+        updateCombatHpBars();
+        logBattle(`🏆 Victory! Defeated <span class="text-red-400">${currentEnemy.name}</span>! Earned 🪙 ${currentEnemy.reward}!`);
+        coins += currentEnemy.reward;
+        coinCount.innerText = formatNumber(coins);
+        playFanfare();
+        setTimeout(skipToNextEnemy, 1000);
+        return;
+      }
+
+      // Enemy attacks back
+      setTimeout(() => {
+        playerCombatHp -= enemyDmg;
+        playBeep(180, 'square', 0.1);
+
+        const eSprite = document.getElementById('enemyCombatSprite');
+        eSprite.classList.add('-translate-x-4');
+        setTimeout(() => eSprite.classList.remove('-translate-x-4'), 150);
+
+        logBattle(`🩸 <span class="text-red-400">${currentEnemy.name}</span> hit back for <span class="text-red-300 font-bold">${formatNumber(enemyDmg)}</span> damage!`);
+
+        if (playerCombatHp <= 0) {
+          playerCombatHp = 0;
+          logBattle(`💀 Your champion fell! Roll another champion to rise again!`);
+          playerCombatHp = getPlayerEffectiveHp(); // revive
+        }
+        updateCombatHpBars();
+      }, 300);
+
+      updateCombatHpBars();
+    }
+
+    function skipToNextEnemy() {
+      currentEnemyIndex = (currentEnemyIndex + 1) % ENEMIES.length;
+      currentEnemy = { ...ENEMIES[currentEnemyIndex] };
+      enemyFightAvatar.innerText = currentEnemy.sprite;
+      enemyCombatName.innerText = currentEnemy.name;
+      document.getElementById('stageLabel').innerText = `Arena Foe #${currentEnemyIndex + 1}`;
+      updateCombatHpBars();
+      logBattle(`⚔️ A new challenger approached: <span class="text-red-400 font-bold">${currentEnemy.name}</span>!`);
+    }
+
+    // Modals
+    function openNoticeModal() { document.getElementById('noticeModal').classList.remove('hidden'); }
+    function closeNoticeModal() { document.getElementById('noticeModal').classList.add('hidden'); }
+    function openCodexModal() { document.getElementById('codexModal').classList.remove('hidden'); }
+    function closeCodexModal() { document.getElementById('codexModal').classList.add('hidden'); }
+
+    // Init
+    updateBeingDisplay();
+    skipToNextEnemy();
+  </script>
+</body>
+</html>
